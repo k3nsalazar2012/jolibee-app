@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+using Jollibee.Chat;
+
 // third party class
 using DG.Tweening;
 using System;
@@ -21,6 +23,13 @@ namespace Jollibee.Menu
         private MenuBody _previousScreen = null;
         private float _transitionDuration = 0.25f;
 
+        private ChatThread _chatThread = null;
+
+        private void Awake()
+        {
+            _chatThread = FindObjectOfType<ChatThread>();
+        }
+
         private void Start()
         {
             _currentScreen = _menuScreens[0];
@@ -31,10 +40,13 @@ namespace Jollibee.Menu
         {
             if (_currentMenuButton == button) return;
 
+            Debug.Log($"current: {_currentMenuButton.gameObject.name}, clicked: {button.gameObject.name}");
+
             ChangeColor(_currentMenuButton, _defaultColor);
             ChangeColor(button, _activeColor);
 
             int index = button.transform.GetSiblingIndex();
+        
             _previousScreen = _currentScreen;
             _currentScreen = _menuScreens[index];
             SwitchScreen();
@@ -52,6 +64,11 @@ namespace Jollibee.Menu
 
         private void SwitchScreen()
         {
+            if (_currentScreen == _menuScreens[4])
+                StartCoroutine(_chatThread.StartConversation());
+            else
+                StartCoroutine( _chatThread.StopConversation());
+
             if (_previousScreen.Position < _currentScreen.Position)
             {
                 _previousScreen.MoveToLeft(_transitionDuration);

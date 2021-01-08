@@ -19,27 +19,83 @@ namespace Jollibee.Chat
         [SerializeField] private List<string> _jbSpiels = new List<string>();
         [SerializeField] private List<string> _customerSpiels = new List<string>();
 
-        private RectTransform _rectTransform = null;        
+        private RectTransform _rectTransform = null;
+        private SoundWave _soundWave = null;
 
-        private void Awake() => _rectTransform = GetComponent<RectTransform>();
         private int _jbDialogIndex = 0;
         private int _customerDialogIndex = 0;
+        private int _dialogueIndex = 0;
 
-        private void Update()
+        private bool _isStopped = false;
+
+        private void Awake()
         {
-            if (Input.GetKeyDown(KeyCode.A))
-            {
-                StartCoroutine( JBDialogue());
+            _rectTransform = GetComponent<RectTransform>();
+            _soundWave = FindObjectOfType<SoundWave>();
+        }
+
+        public IEnumerator StartConversation()
+        {
+            yield return new WaitForSeconds(0.25f);
+            _soundWave.StopBars();
+            _isStopped = false;
+            _jbDialogIndex = 0;
+            _customerDialogIndex = 0;
+            _dialogueIndex = 0;
+
+            _rectTransform.sizeDelta = new Vector2(_rectTransform.sizeDelta.x, 0f);
+
+            if (transform.childCount != 0)
+            { 
+                for(int i=0; i<transform.childCount; i++)
+                {
+                    Destroy(transform.GetChild(i).gameObject);
+                }
             }
 
-            if (Input.GetKeyDown(KeyCode.S))
+            for (int i = 0; i < 10; i++)
             {
-                StartCoroutine(CustomerDialogue());
+                if (_isStopped)
+                    yield return null;
+                else
+                {
+                    _soundWave.FluctuateBars();
+                    ExchangeConversation();
+                    yield return new WaitForSeconds(Random.Range(1.5f, 3f));
+                    _soundWave.StopBars();
+
+                    yield return new WaitForSeconds(Random.Range(0.5f, 1f));
+                }
             }
         }
 
+        public IEnumerator StopConversation()
+        {
+            yield return new WaitForSeconds(0.26f);
+            _isStopped = true;
+            if (transform.childCount != 0)
+            {
+                for (int i = 0; i < transform.childCount; i++)
+                {
+                    Destroy(transform.GetChild(i).gameObject);
+                }
+            }
+            _rectTransform.sizeDelta = new Vector2(_rectTransform.sizeDelta.x, 0f);
+            _soundWave.StopBars();
+        }
+
+        private void ExchangeConversation()
+        {
+            if (_dialogueIndex % 2 == 0)
+                StartCoroutine(JBDialogue());
+            else
+                StartCoroutine(CustomerDialogue());
+
+            _dialogueIndex++;
+        }
+
         private IEnumerator JBDialogue()
-        { 
+        {
             RectTransform jbDialog = Instantiate(_jbDialogPrefab, transform).transform as RectTransform;
             TMP_Text dialogText = jbDialog.GetComponentInChildren<TMP_Text>();
 
@@ -70,6 +126,8 @@ namespace Jollibee.Chat
 
         public void AddMessage(RectTransform message)
         {
+            if (_isStopped) return;
+
             message.DOAnchorPosY(-Height, 0f); 
 
             _rectTransform.sizeDelta = new Vector2(_rectTransform.sizeDelta.x, Height + message.rect.height);
